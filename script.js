@@ -4,7 +4,7 @@ class TimerClock {
         this.ctx = this.canvas.getContext('2d');
         this.centerX = this.canvas.width / 2;
         this.centerY = this.canvas.height / 2;
-        this.radius = 350;
+        this.radius = 440;
         this.timeRanges = [];
         this.isDragging = false;
         this.startAngle = null;
@@ -273,8 +273,8 @@ class TimerClock {
     generateClockImage() {
         // Create a temporary canvas for the final image
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = 800;
-        tempCanvas.height = 900;
+        tempCanvas.width = 1000;
+        tempCanvas.height = 1100;
         const tempCtx = tempCanvas.getContext('2d');
 
         // Background
@@ -288,7 +288,7 @@ class TimerClock {
         tempCtx.fillText('Maalit Shabat', tempCanvas.width / 2, 50);
 
         // Save the current canvas state and draw it centered
-        const clockSize = 600;
+        const clockSize = 750;
         const offsetX = (tempCanvas.width - clockSize) / 2;
         const offsetY = 100;
 
@@ -305,10 +305,10 @@ class TimerClock {
             tempCtx.font = 'bold 24px Arial';
             tempCtx.fillStyle = '#333';
             tempCtx.textAlign = 'center';
-            tempCtx.fillText('Selected Time Ranges:', tempCanvas.width / 2, 750);
+            tempCtx.fillText('Selected Time Ranges:', tempCanvas.width / 2, 950);
 
             tempCtx.font = '20px Arial';
-            let yPos = 790;
+            let yPos = 990;
             this.timeRanges.forEach((range, index) => {
                 const text = `${this.hourToTimeString(range.start)} - ${this.hourToTimeString(range.end)}`;
                 tempCtx.fillText(text, tempCanvas.width / 2, yPos);
@@ -325,12 +325,6 @@ class TimerClock {
             return;
         }
 
-        // Create message with time ranges
-        let message = 'Maalit Shabat:\n\n';
-        this.timeRanges.forEach((range, index) => {
-            message += `${this.hourToTimeString(range.start)} - ${this.hourToTimeString(range.end)}\n`;
-        });
-
         // Generate the clock image
         const imageCanvas = this.generateClockImage();
 
@@ -338,45 +332,20 @@ class TimerClock {
         imageCanvas.toBlob(async (blob) => {
             const file = new File([blob], `timer-schedule-${Date.now()}.png`, { type: 'image/png' });
 
-            // WhatsApp phone number (Tzvi - 0546663084)
-            // Format: remove leading 0 and add country code +972
-            const phoneNumber = '972546663084';
-
-            // Try to use Web Share API if available (works on mobile)
+            // Use Web Share API (works on mobile phones only)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
-                        title: 'Maalit Shabat',
-                        text: message,
                         files: [file]
                     });
-                    return;
                 } catch (err) {
-                    // User cancelled or error occurred, fall through to alternative method
+                    // User cancelled or error occurred
                     console.log('Share cancelled or failed:', err);
                 }
+            } else {
+                // Web Share API not available - only works on phones
+                alert('WhatsApp sharing is only available on mobile phones. Please use a mobile device.');
             }
-
-            // Fallback: Download image and open WhatsApp with text
-            // Download the image
-            const link = document.createElement('a');
-            link.download = `timer-schedule-${Date.now()}.png`;
-            link.href = imageCanvas.toDataURL('image/png');
-            link.click();
-
-            // Show alert to user
-            setTimeout(() => {
-                alert('Image downloaded! Please attach it manually in WhatsApp.\n\nOpening WhatsApp now...');
-
-                // Encode the message for URL
-                const encodedMessage = encodeURIComponent(message);
-
-                // Create WhatsApp link
-                const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-
-                // Open WhatsApp in a new window
-                window.open(whatsappUrl, '_blank');
-            }, 500);
         }, 'image/png');
     }
 }
