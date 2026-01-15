@@ -9,6 +9,7 @@ class TimerClock {
         this.isDragging = false;
         this.startAngle = null;
         this.currentAngle = null;
+        this.editingRange = null; // { index: number, point: 'start' | 'end' }
 
         this.init();
     }
@@ -106,7 +107,36 @@ class TimerClock {
     drawTimeRanges() {
         this.timeRanges.forEach((range, index) => {
             this.drawTimeRange(range.start, range.end, false);
+            this.drawEndpointHandles(range.start, range.end);
         });
+    }
+
+    drawEndpointHandles(startHour, endHour) {
+        const startAngle = (startHour * 15 - 90) * Math.PI / 180;
+        const endAngle = (endHour * 15 - 90) * Math.PI / 180;
+        const handleRadius = (this.radius - 30 + 60) / 2; // Middle of the range band
+
+        // Draw start handle
+        const startX = this.centerX + handleRadius * Math.cos(startAngle);
+        const startY = this.centerY + handleRadius * Math.sin(startAngle);
+        this.ctx.beginPath();
+        this.ctx.arc(startX, startY, 12, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#667eea';
+        this.ctx.fill();
+        this.ctx.strokeStyle = 'white';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+
+        // Draw end handle
+        const endX = this.centerX + handleRadius * Math.cos(endAngle);
+        const endY = this.centerY + handleRadius * Math.sin(endAngle);
+        this.ctx.beginPath();
+        this.ctx.arc(endX, endY, 12, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#667eea';
+        this.ctx.fill();
+        this.ctx.strokeStyle = 'white';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
     }
 
     drawTimeRange(startHour, endHour, isTemporary = false) {
@@ -135,9 +165,16 @@ class TimerClock {
     }
 
     drawCurrentSelection() {
-        const startHour = this.angleToHour(this.startAngle);
-        const endHour = this.angleToHour(this.currentAngle);
-        this.drawTimeRange(startHour, endHour, true);
+        if (this.editingRange) {
+            // When editing, the range is already updated in timeRanges
+            // Just need to redraw, which happens in drawClock
+            return;
+        } else {
+            // Creating a new range
+            const startHour = this.angleToHour(this.startAngle);
+            const endHour = this.angleToHour(this.currentAngle);
+            this.drawTimeRange(startHour, endHour, true);
+        }
     }
 
     angleToHour(angle) {
@@ -159,6 +196,29 @@ class TimerClock {
         const x = (event.clientX - rect.left) * scaleX - this.centerX;
         const y = (event.clientY - rect.top) * scaleY - this.centerY;
         return Math.atan2(y, x) * 180 / Math.PI;
+    }
+
+    findNearestEndpoint(angle) {
+        const clickedHour = this.angleToHour(angle);
+        const threshold = 0.5; // 30 minutes tolerance
+
+        for (let i = 0; i < this.timeRanges.length; i++) {
+            const range = this.timeRanges[i];
+
+            // Check start point
+            const startDiff = Math.abs(clickedHour - range.start);
+            if (startDiff < threshold || Math.abs(startDiff - 24) < threshold) {
+                return { index: i, point: 'start' };
+            }
+
+            // Check end point
+            const endDiff = Math.abs(clickedHour - range.end);
+            if (endDiff < threshold || Math.abs(endDiff - 24) < threshold) {
+                return { index: i, point: 'end' };
+            }
+        }
+
+        return null;
     }
 
     setupEventListeners() {
@@ -185,33 +245,74 @@ class TimerClock {
     }
 
     handleMouseDown(event) {
-        this.isDragging = true;
-        this.startAngle = this.getMouseAngle(event);
-        this.currentAngle = this.startAngle;
+        const clickAngle = this.getMouseAngle(event);
+        const nearestEndpoint = this.findNearestEndpoint(clickAngle);
+
+        if (nearestEndpoint) {
+            // Edit existing range
+            this.editingRange = nearestEndpoint;
+            this.isDragging = true;
+            this.currentAngle = clickAngle;
+        } else {
+            // Create new range
+            this.isDragging = true;
+            this.startAngle = clickAngle;
+            this.currentAngle = clickAngle;
+            this.editingRange = null;
+        }
     }
 
     handleMouseMove(event) {
         if (this.isDragging) {
             this.currentAngle = this.getMouseAngle(event);
+
+            // If editing, update the range in real-time
+            if (this.editingRange) {
+                const newHour = this.angleToHour(this.currentAngle);
+                const range = this.timeRanges[this.editingRange.index];
+
+                if (this.editingRange.point === 'start') {
+                    range.start = newHour;
+                } else {
+                    range.end = newHour;
+                }
+            }
+
             this.drawClock();
         }
     }
 
     handleMouseUp(event) {
-        if (this.isDragging && this.startAngle !== null && this.currentAngle !== null) {
-            const startHour = this.angleToHour(this.startAngle);
-            const endHour = this.angleToHour(this.currentAngle);
+        if (this.isDragging) {
+            if (this.editingRange) {
+                // Finished editing an existing range
+                const range = this.timeRanges[this.editingRange.index];
 
-            // Only add if there's a meaningful range (at least 0.5 hour difference)
-            const diff = Math.abs(endHour - startHour);
-            if (diff > 0.5 && diff < 23.5) {
-                this.addTimeRange(startHour, endHour);
+                // Validate the range
+                const diff = Math.abs(range.end - range.start);
+                if (diff < 0.5 || diff > 23.5) {
+                    // Invalid range, remove it
+                    this.timeRanges.splice(this.editingRange.index, 1);
+                }
+
+                this.updateTimeRangesList();
+            } else if (this.startAngle !== null && this.currentAngle !== null) {
+                // Creating a new range
+                const startHour = this.angleToHour(this.startAngle);
+                const endHour = this.angleToHour(this.currentAngle);
+
+                // Only add if there's a meaningful range (at least 0.5 hour difference)
+                const diff = Math.abs(endHour - startHour);
+                if (diff > 0.5 && diff < 23.5) {
+                    this.addTimeRange(startHour, endHour);
+                }
             }
         }
 
         this.isDragging = false;
         this.startAngle = null;
         this.currentAngle = null;
+        this.editingRange = null;
         this.drawClock();
     }
 
@@ -253,11 +354,64 @@ class TimerClock {
         }
 
         listElement.innerHTML = this.timeRanges.map((range, index) => `
-            <div class="time-range-item">
-                <span>${this.hourToTimeString(range.start)} - ${this.hourToTimeString(range.end)}</span>
-                <button class="remove-range" onclick="clock.removeTimeRange(${index})">Remove</button>
+            <div class="time-range-item" id="range-${index}">
+                <div class="time-display" id="display-${index}">
+                    <span>${this.hourToTimeString(range.start)} - ${this.hourToTimeString(range.end)}</span>
+                    <div class="button-group">
+                        <button class="edit-range" onclick="clock.startEditingRange(${index})">Edit</button>
+                        <button class="remove-range" onclick="clock.removeTimeRange(${index})">Remove</button>
+                    </div>
+                </div>
+                <div class="time-edit" id="edit-${index}" style="display: none;">
+                    <div class="time-inputs">
+                        <input type="time" id="start-${index}" value="${this.hourToTimeString(range.start)}" />
+                        <span>-</span>
+                        <input type="time" id="end-${index}" value="${this.hourToTimeString(range.end)}" />
+                    </div>
+                    <div class="button-group">
+                        <button class="save-range" onclick="clock.saveEditedRange(${index})">Save</button>
+                        <button class="cancel-edit" onclick="clock.cancelEditingRange(${index})">Cancel</button>
+                    </div>
+                </div>
             </div>
         `).join('');
+    }
+
+    startEditingRange(index) {
+        document.getElementById(`display-${index}`).style.display = 'none';
+        document.getElementById(`edit-${index}`).style.display = 'flex';
+    }
+
+    cancelEditingRange(index) {
+        document.getElementById(`display-${index}`).style.display = 'flex';
+        document.getElementById(`edit-${index}`).style.display = 'none';
+    }
+
+    saveEditedRange(index) {
+        const startInput = document.getElementById(`start-${index}`).value;
+        const endInput = document.getElementById(`end-${index}`).value;
+
+        // Convert time strings (HH:MM) to hour decimals
+        const startParts = startInput.split(':');
+        const endParts = endInput.split(':');
+
+        const startHour = parseInt(startParts[0]) + parseInt(startParts[1]) / 60;
+        const endHour = parseInt(endParts[0]) + parseInt(endParts[1]) / 60;
+
+        // Validate the range
+        const diff = Math.abs(endHour - startHour);
+        if (diff < 0.25 || diff > 23.75) {
+            alert('Please enter a valid time range (at least 15 minutes and less than 24 hours)');
+            return;
+        }
+
+        // Update the time range
+        this.timeRanges[index].start = startHour;
+        this.timeRanges[index].end = endHour;
+
+        // Redraw and update
+        this.drawClock();
+        this.updateTimeRangesList();
     }
 
     downloadImage() {
