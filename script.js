@@ -95,7 +95,7 @@ class TimerClock {
             const labelX = this.centerX + labelRadius * Math.cos(angle);
             const labelY = this.centerY + labelRadius * Math.sin(angle);
 
-            this.ctx.font = 'bold 20px Arial';
+            this.ctx.font = 'bold 36px Arial';
             this.ctx.fillStyle = '#333';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
