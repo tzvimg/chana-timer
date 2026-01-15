@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24-Hour Timer Selector</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Select Your Active Hours</h1>
+            <p class="subtitle">Click and drag on the clock to select time ranges</p>
+        </header>
+
+        <div class="main-content">
+            <div class="clock-container">
+                <canvas id="clockCanvas" width="600" height="600"></canvas>
+            </div>
+
+            <div class="controls">
+                <div class="button-group">
+                    <button id="clearBtn" class="btn btn-secondary">
+                        <span class="btn-icon">🗑️</span>
+                        Clear All
+                    </button>
+                    <button id="downloadBtn" class="btn btn-primary">
+                        <span class="btn-icon">💾</span>
+                        Save Image
+                    </button>
+                </div>
+
+                <div class="info-panel">
+                    <h3>Selected Time Ranges:</h3>
+                    <div id="timeRangesList" class="time-ranges-list">
+                        <p class="empty-state">No time ranges selected yet</p>
+                    </div>
+                </div>
+
+                <div class="instructions">
+                    <h3>How to use:</h3>
+                    <ol>
+                        <li>Click on the clock where you want to start</li>
+                        <li>Drag to where you want to end</li>
+                        <li>Release to create a time range</li>
+                        <li>Click "Save Image" to download and share</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
