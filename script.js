@@ -114,8 +114,8 @@ class TimerClock {
         // Draw hour labels
         for (let hour = 0; hour < 24; hour++) {
             const angle = (hour * 15 - 90) * Math.PI / 180;
-            // Scale label offset proportionally with canvas size (about 15% from edge)
-            const labelRadius = this.radius - (this.canvas.width * 0.05);
+            // Position labels inside the hour marks (hour marks go from radius-20 to radius-5)
+            const labelRadius = this.radius - 35;
             const labelX = this.centerX + labelRadius * Math.cos(angle);
             const labelY = this.centerY + labelRadius * Math.sin(angle);
 
