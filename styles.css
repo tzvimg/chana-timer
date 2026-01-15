@@ -327,4 +327,75 @@ h3 {
         min-width: auto;
         max-width: 100%;
     }
+
+    .time-display {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .time-edit {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .button-group {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .time-inputs {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    .clock-container {
+        padding: 15px;
+    }
+
+    .controls {
+        padding: 20px;
+    }
+
+    .time-inputs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .time-inputs input[type="time"] {
+        width: 100%;
+    }
+
+    .button-group {
+        flex-wrap: wrap;
+    }
+
+    .edit-range,
+    .remove-range,
+    .save-range,
+    .cancel-edit {
+        flex: 1;
+        min-width: 80px;
+        padding: 10px 12px;
+    }
+
+    .btn-corner {
+        width: 44px;
+        height: 44px;
+    }
+
+    .btn-icon {
+        font-size: 1.3rem;
+    }
+
+    .btn-icon-svg {
+        width: 20px;
+        height: 20px;
+    }
 }

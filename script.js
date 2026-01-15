@@ -2,21 +2,43 @@ class TimerClock {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
-        this.centerX = this.canvas.width / 2;
-        this.centerY = this.canvas.height / 2;
-        this.radius = 440;
         this.timeRanges = [];
         this.isDragging = false;
         this.startAngle = null;
         this.currentAngle = null;
         this.editingRange = null; // { index: number, point: 'start' | 'end' }
 
+        // These will be set by updateCanvasSize()
+        this.centerX = 0;
+        this.centerY = 0;
+        this.radius = 0;
+
         this.init();
     }
 
     init() {
+        this.updateCanvasSize();
         this.drawClock();
         this.setupEventListeners();
+    }
+
+    updateCanvasSize() {
+        const container = this.canvas.parentElement;
+        const containerWidth = container.clientWidth - 60; // Account for padding
+        const containerHeight = window.innerHeight - 200; // Leave space for header and controls
+
+        // Use the smaller dimension to keep the clock circular and fully visible
+        const maxSize = Math.min(containerWidth, containerHeight, 1000);
+        const size = Math.max(300, maxSize); // Minimum size of 300px
+
+        // Set canvas size
+        this.canvas.width = size;
+        this.canvas.height = size;
+
+        // Update dynamic properties
+        this.centerX = size / 2;
+        this.centerY = size / 2;
+        this.radius = (size * 0.88) / 2; // 88% of half the size
     }
 
     drawClock() {
@@ -96,7 +118,9 @@ class TimerClock {
             const labelX = this.centerX + labelRadius * Math.cos(angle);
             const labelY = this.centerY + labelRadius * Math.sin(angle);
 
-            this.ctx.font = 'bold 36px Arial';
+            // Scale font size based on canvas size
+            const fontSize = Math.max(16, this.canvas.width / 28);
+            this.ctx.font = `bold ${fontSize}px Arial`;
             this.ctx.fillStyle = '#333';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
@@ -116,26 +140,30 @@ class TimerClock {
         const endAngle = (endHour * 15 - 90) * Math.PI / 180;
         const handleRadius = (this.radius - 30 + 60) / 2; // Middle of the range band
 
+        // Scale handle size based on canvas size
+        const handleSize = Math.max(8, this.canvas.width / 80);
+        const strokeWidth = Math.max(2, this.canvas.width / 300);
+
         // Draw start handle
         const startX = this.centerX + handleRadius * Math.cos(startAngle);
         const startY = this.centerY + handleRadius * Math.sin(startAngle);
         this.ctx.beginPath();
-        this.ctx.arc(startX, startY, 12, 0, 2 * Math.PI);
+        this.ctx.arc(startX, startY, handleSize, 0, 2 * Math.PI);
         this.ctx.fillStyle = '#667eea';
         this.ctx.fill();
         this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = strokeWidth;
         this.ctx.stroke();
 
         // Draw end handle
         const endX = this.centerX + handleRadius * Math.cos(endAngle);
         const endY = this.centerY + handleRadius * Math.sin(endAngle);
         this.ctx.beginPath();
-        this.ctx.arc(endX, endY, 12, 0, 2 * Math.PI);
+        this.ctx.arc(endX, endY, handleSize, 0, 2 * Math.PI);
         this.ctx.fillStyle = '#667eea';
         this.ctx.fill();
         this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = strokeWidth;
         this.ctx.stroke();
     }
 
@@ -200,7 +228,8 @@ class TimerClock {
 
     findNearestEndpoint(angle) {
         const clickedHour = this.angleToHour(angle);
-        const threshold = 0.5; // 30 minutes tolerance
+        // Scale threshold based on screen size - larger on smaller screens for easier touch interaction
+        const threshold = this.canvas.width < 500 ? 0.75 : 0.5; // 45 or 30 minutes tolerance
 
         for (let i = 0; i < this.timeRanges.length; i++) {
             const range = this.timeRanges[i];
@@ -241,6 +270,16 @@ class TimerClock {
         this.canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
             this.handleMouseUp(e);
+        });
+
+        // Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.updateCanvasSize();
+                this.drawClock();
+            }, 250);
         });
     }
 
