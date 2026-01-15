@@ -4,7 +4,7 @@ class TimerClock {
         this.ctx = this.canvas.getContext('2d');
         this.centerX = this.canvas.width / 2;
         this.centerY = this.canvas.height / 2;
-        this.radius = 250;
+        this.radius = 350;
         this.timeRanges = [];
         this.isDragging = false;
         this.startAngle = null;
@@ -285,7 +285,7 @@ class TimerClock {
         tempCtx.font = 'bold 36px Arial';
         tempCtx.fillStyle = '#667eea';
         tempCtx.textAlign = 'center';
-        tempCtx.fillText('My Active Hours', tempCanvas.width / 2, 50);
+        tempCtx.fillText('Maalit Shabat', tempCanvas.width / 2, 50);
 
         // Save the current canvas state and draw it centered
         const clockSize = 600;
@@ -326,7 +326,7 @@ class TimerClock {
         }
 
         // Create message with time ranges
-        let message = 'My Active Hours:\n\n';
+        let message = 'Maalit Shabat:\n\n';
         this.timeRanges.forEach((range, index) => {
             message += `${this.hourToTimeString(range.start)} - ${this.hourToTimeString(range.end)}\n`;
         });
@@ -346,7 +346,7 @@ class TimerClock {
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
-                        title: 'My Active Hours',
+                        title: 'Maalit Shabat',
                         text: message,
                         files: [file]
                     });
