@@ -287,6 +287,32 @@ class TimerClock {
         link.href = tempCanvas.toDataURL('image/png');
         link.click();
     }
+
+    shareWhatsApp() {
+        if (this.timeRanges.length === 0) {
+            alert('Please select some time ranges first!');
+            return;
+        }
+
+        // Create message with time ranges
+        let message = 'My Active Hours:\n\n';
+        this.timeRanges.forEach((range, index) => {
+            message += `${this.hourToTimeString(range.start)} - ${this.hourToTimeString(range.end)}\n`;
+        });
+
+        // WhatsApp phone number (Tzvi - 0546663084)
+        // Format: remove leading 0 and add country code +972
+        const phoneNumber = '972546663084';
+
+        // Encode the message for URL
+        const encodedMessage = encodeURIComponent(message);
+
+        // Create WhatsApp link
+        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+        // Open WhatsApp in a new window
+        window.open(whatsappUrl, '_blank');
+    }
 }
 
 // Initialize the clock
@@ -304,5 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('downloadBtn').addEventListener('click', () => {
         clock.downloadImage();
+    });
+
+    document.getElementById('whatsappBtn').addEventListener('click', () => {
+        clock.shareWhatsApp();
     });
 });

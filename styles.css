@@ -49,6 +49,7 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
 }
 
 #clockCanvas {
@@ -67,30 +68,57 @@ h1 {
     max-width: 450px;
 }
 
-.button-group {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 30px;
+.corner-buttons {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 10;
 }
 
 .btn {
-    flex: 1;
-    padding: 20px 25px;
-    font-size: 1.3rem;
-    font-weight: bold;
     border: none;
-    border-radius: 12px;
+    border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+}
+
+.btn-corner {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    padding: 0;
 }
 
 .btn-icon {
-    font-size: 2rem;
+    font-size: 1.5rem;
+}
+
+.btn-top-left {
+    top: 15px;
+    left: 15px;
+}
+
+.btn-top-right {
+    top: 15px;
+    right: 15px;
+}
+
+.btn-bottom-left {
+    bottom: 15px;
+    left: 15px;
+}
+
+.btn-bottom-right {
+    bottom: 15px;
+    right: 15px;
 }
 
 .btn-primary {
@@ -118,6 +146,20 @@ h1 {
 }
 
 .btn-secondary:active {
+    transform: translateY(0);
+}
+
+.btn-whatsapp {
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    color: white;
+}
+
+.btn-whatsapp:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-whatsapp:active {
     transform: translateY(0);
 }
 
@@ -177,27 +219,6 @@ h3 {
     padding: 20px;
 }
 
-.instructions {
-    background: #e8eaf6;
-    padding: 20px;
-    border-radius: 10px;
-}
-
-.instructions ol {
-    margin-left: 25px;
-    margin-top: 10px;
-}
-
-.instructions li {
-    font-size: 1.2rem;
-    margin-bottom: 12px;
-    line-height: 1.6;
-}
-
-.instructions li:last-child {
-    margin-bottom: 0;
-}
-
 /* Responsive design */
 @media (max-width: 768px) {
     h1 {
@@ -215,9 +236,5 @@ h3 {
     .controls {
         min-width: auto;
         max-width: 100%;
-    }
-
-    .button-group {
-        flex-direction: column;
     }
 }
