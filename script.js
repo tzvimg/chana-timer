@@ -49,12 +49,32 @@ class TimerClock {
     }
 
     drawHourMarkers() {
-        for (let hour = 0; hour < 24; hour++) {
-            const angle = (hour * 15 - 90) * Math.PI / 180; // 15 degrees per hour, -90 to start at top
+        // Draw quarter hour marks (every 15 minutes = 96 marks total)
+        for (let quarter = 0; quarter < 96; quarter++) {
+            const angle = (quarter * 3.75 - 90) * Math.PI / 180; // 3.75 degrees per 15 minutes
+            const isHourMark = quarter % 4 === 0;
+            const isHalfHourMark = !isHourMark && quarter % 2 === 0;
 
-            // Draw hour lines
-            const innerRadius = this.radius - 20;
-            const outerRadius = this.radius - 5;
+            // Determine mark length and style
+            let innerRadius, outerRadius, lineWidth;
+            if (isHourMark) {
+                // Hour marks - longest
+                innerRadius = this.radius - 20;
+                outerRadius = this.radius - 5;
+                const hour = quarter / 4;
+                lineWidth = hour % 6 === 0 ? 4 : 2;
+            } else if (isHalfHourMark) {
+                // Half-hour marks - medium
+                innerRadius = this.radius - 15;
+                outerRadius = this.radius - 5;
+                lineWidth = 2;
+            } else {
+                // Quarter-hour marks - shortest
+                innerRadius = this.radius - 12;
+                outerRadius = this.radius - 5;
+                lineWidth = 1;
+            }
+
             const x1 = this.centerX + innerRadius * Math.cos(angle);
             const y1 = this.centerY + innerRadius * Math.sin(angle);
             const x2 = this.centerX + outerRadius * Math.cos(angle);
@@ -64,10 +84,13 @@ class TimerClock {
             this.ctx.moveTo(x1, y1);
             this.ctx.lineTo(x2, y2);
             this.ctx.strokeStyle = '#667eea';
-            this.ctx.lineWidth = hour % 6 === 0 ? 4 : 2;
+            this.ctx.lineWidth = lineWidth;
             this.ctx.stroke();
+        }
 
-            // Draw hour labels
+        // Draw hour labels
+        for (let hour = 0; hour < 24; hour++) {
+            const angle = (hour * 15 - 90) * Math.PI / 180;
             const labelRadius = this.radius - 50;
             const labelX = this.centerX + labelRadius * Math.cos(angle);
             const labelY = this.centerY + labelRadius * Math.sin(angle);
@@ -121,7 +144,12 @@ class TimerClock {
         // Convert angle to hour (0-23.99)
         let hour = ((angle + 90) * 24 / 360) % 24;
         if (hour < 0) hour += 24;
-        return hour;
+        return this.snapToQuarterHour(hour);
+    }
+
+    snapToQuarterHour(hour) {
+        // Snap to nearest 15-minute interval (0.25 hour)
+        return Math.round(hour * 4) / 4;
     }
 
     getMouseAngle(event) {
@@ -188,13 +216,10 @@ class TimerClock {
     }
 
     addTimeRange(start, end) {
-        // Round to nearest quarter hour for cleaner display
-        const roundedStart = Math.round(start * 4) / 4;
-        const roundedEnd = Math.round(end * 4) / 4;
-
+        // Times are already snapped in angleToHour method
         this.timeRanges.push({
-            start: roundedStart,
-            end: roundedEnd
+            start: start,
+            end: end
         });
 
         this.drawClock();
@@ -236,6 +261,16 @@ class TimerClock {
     }
 
     downloadImage() {
+        const tempCanvas = this.generateClockImage();
+
+        // Download the image
+        const link = document.createElement('a');
+        link.download = `timer-schedule-${Date.now()}.png`;
+        link.href = tempCanvas.toDataURL('image/png');
+        link.click();
+    }
+
+    generateClockImage() {
         // Create a temporary canvas for the final image
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = 800;
@@ -281,14 +316,10 @@ class TimerClock {
             });
         }
 
-        // Download the image
-        const link = document.createElement('a');
-        link.download = `timer-schedule-${Date.now()}.png`;
-        link.href = tempCanvas.toDataURL('image/png');
-        link.click();
+        return tempCanvas;
     }
 
-    shareWhatsApp() {
+    async shareWhatsApp() {
         if (this.timeRanges.length === 0) {
             alert('Please select some time ranges first!');
             return;
@@ -300,18 +331,53 @@ class TimerClock {
             message += `${this.hourToTimeString(range.start)} - ${this.hourToTimeString(range.end)}\n`;
         });
 
-        // WhatsApp phone number (Tzvi - 0546663084)
-        // Format: remove leading 0 and add country code +972
-        const phoneNumber = '972546663084';
+        // Generate the clock image
+        const imageCanvas = this.generateClockImage();
 
-        // Encode the message for URL
-        const encodedMessage = encodeURIComponent(message);
+        // Convert canvas to blob
+        imageCanvas.toBlob(async (blob) => {
+            const file = new File([blob], `timer-schedule-${Date.now()}.png`, { type: 'image/png' });
 
-        // Create WhatsApp link
-        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+            // WhatsApp phone number (Tzvi - 0546663084)
+            // Format: remove leading 0 and add country code +972
+            const phoneNumber = '972546663084';
 
-        // Open WhatsApp in a new window
-        window.open(whatsappUrl, '_blank');
+            // Try to use Web Share API if available (works on mobile)
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: 'My Active Hours',
+                        text: message,
+                        files: [file]
+                    });
+                    return;
+                } catch (err) {
+                    // User cancelled or error occurred, fall through to alternative method
+                    console.log('Share cancelled or failed:', err);
+                }
+            }
+
+            // Fallback: Download image and open WhatsApp with text
+            // Download the image
+            const link = document.createElement('a');
+            link.download = `timer-schedule-${Date.now()}.png`;
+            link.href = imageCanvas.toDataURL('image/png');
+            link.click();
+
+            // Show alert to user
+            setTimeout(() => {
+                alert('Image downloaded! Please attach it manually in WhatsApp.\n\nOpening WhatsApp now...');
+
+                // Encode the message for URL
+                const encodedMessage = encodeURIComponent(message);
+
+                // Create WhatsApp link
+                const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+                // Open WhatsApp in a new window
+                window.open(whatsappUrl, '_blank');
+            }, 500);
+        }, 'image/png');
     }
 }
 
